@@ -72,7 +72,7 @@
     </LinearLayout>
 
     <android.widget.Button
-        android:id="@+id/button7"
+        android:id="@+id/next_button"
         style="@style/TextButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
