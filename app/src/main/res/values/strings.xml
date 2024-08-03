@@ -1,5 +1,6 @@
 <resources>
     <string-array name="malaysia_states_and_territories">
+        <item>Select Location</item>
         <item>Johor</item>
         <item>Kedah</item>
         <item>Kelantan</item>

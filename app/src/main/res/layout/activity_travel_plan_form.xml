@@ -25,48 +25,60 @@
             android:id="@+id/textView4"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TextView" />
+            android:text="Start Date" />
 
         <android.widget.Button
             android:id="@+id/start_date_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:background="@drawable/round_corner_card_12"
+            android:backgroundTint="@color/light_grey_20"
             android:text="Button" />
 
         <TextView
             android:id="@+id/textView5"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TextView" />
+            android:text="End Date" />
 
         <android.widget.Button
             android:id="@+id/end_date_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:background="@drawable/round_corner_card_12"
+            android:backgroundTint="@color/light_grey_20"
             android:text="Button" />
 
         <TextView
             android:id="@+id/textView6"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TextView" />
+            android:text="Start Time" />
 
         <android.widget.Button
             android:id="@+id/start_time_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:background="@drawable/round_corner_card_12"
+            android:backgroundTint="@color/light_grey_20"
             android:text="Button" />
 
         <TextView
             android:id="@+id/textView7"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="TextView" />
+            android:text="End Time" />
 
         <android.widget.Button
             android:id="@+id/end_time_picker"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:background="@drawable/round_corner_card_12"
+            android:backgroundTint="@color/light_grey_20"
             android:text="Button" />
 
     </LinearLayout>
