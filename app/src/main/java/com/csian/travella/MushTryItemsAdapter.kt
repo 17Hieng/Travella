@@ -13,7 +13,7 @@ class MushTryItemsAdapter(private val dataSet: Array<String>) :
         val textView: TextView = view.findViewById(R.id.id_musttry_items)
     }
 
-    override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+    override fun onCreateViewHolder(viewGroup: ViewGroup, viewType: Int): ViewHolder {
         // Create a new view, which defines the UI of the list item
         val view = LayoutInflater.from(viewGroup.context)
             .inflate(R.layout.item_tourist_interest_suggestion_card, viewGroup, false)
