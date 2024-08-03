@@ -39,7 +39,7 @@ class TravelPlanFormActivity : AppCompatActivity() {
     private fun init(){
         getViews()
         initViews()
-
+        initListeners()
     }
 
     private fun getViews(){
@@ -73,6 +73,10 @@ class TravelPlanFormActivity : AppCompatActivity() {
             }
         }
 
+
+        startDatePicker.setOnClickListener {
+
+        }
 
 
     }

@@ -117,6 +117,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        val intent = Intent(this, StartTravelPlanActivity::class.java)
+        startActivity(intent)
+        finish()
         // Check if user is signed in (non-null) and update UI accordingly.
         val currentUser = firebaseAuth.currentUser
         updateUI(currentUser)
