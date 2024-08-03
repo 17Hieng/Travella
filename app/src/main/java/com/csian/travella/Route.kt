@@ -45,7 +45,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
-import com.csian.travella.DirectionResponse
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -575,6 +574,9 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
                     searchTextField.setText("")
                     searchRecyclerView.adapter = null
                     markLocationOnMap(place.latLng.latitude, place.latLng.longitude)
+                    locations.add(LocationData(UUID.randomUUID().toString(), place.name, place.latLng))
+                    if (locations.size > 1)
+                        getAndDrawRoutes(locations[locations.size - 2].latLng, locations[locations.size - 1].latLng, apiKey2)
                 }
             }.addOnFailureListener { exception ->
                 Log.e("Places", "Place not found: ${exception.message}")
