@@ -44,6 +44,9 @@ class MushTryActivity: AppCompatActivity() {
 
     }
 
+
+
+
     private fun getItemDetail(state: String, callback: (List<String>?) -> Unit) {
         val client = OkHttpClient()
 
