@@ -4,11 +4,7 @@ import PolylineEncoding
 import android.Manifest
 import android.app.Activity
 import android.app.TimePickerDialog
-import android.content.Context
-import com.google.maps.android.SphericalUtil
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Point
 import android.location.Location
@@ -20,31 +16,14 @@ import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.CalendarView
 import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.PopupWindow
-import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.room.Room
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -55,7 +34,6 @@ import com.google.android.gms.maps.model.Dot
 import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
-import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
@@ -66,18 +44,16 @@ import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.api.model.RectangularBounds
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
-import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.type.DateTime
+import com.google.maps.android.SphericalUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.serialization.decodeFromString
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -85,23 +61,15 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okio.IOException
 import org.json.JSONObject
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 import java.util.UUID
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.math.sqrt
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class Permission {
 
     companion object{
         val LOCATION_PERMISSION_REQUEST_CODE = 1
-        fun isFineLocationPermissionGranted(context: Context): Boolean{
-            return (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-                    != PackageManager.PERMISSION_GRANTED)
-        }
 
         fun requestFineLocationPermission(activity: Activity){
             ActivityCompat.requestPermissions(activity,
@@ -112,9 +80,19 @@ class Permission {
     }
 }
 
+class Graph(val size: Int) {
+    val adjacencyMatrix = Array(size) { DoubleArray(size) { Double.MAX_VALUE } }
+
+    fun addEdge(from: Int, to: Int, weight: Double) {
+        adjacencyMatrix[from][to] = weight
+        adjacencyMatrix[to][from] = weight
+    }
+}
+
+
 data class LocationData(val id: String, val name: String, val latLng: LatLng)
 
-class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
+class RouteActivity : AppCompatActivity(), OnMapReadyCallback{
 
     // COLLECTIONS
     private val markerPropertiesMap = HashMap<Marker, String>()
@@ -134,6 +112,7 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
     // VIEWS
     private lateinit var searchTextField: EditText
     private lateinit var searchRecyclerView: RecyclerView
+    private lateinit var map: SupportMapFragment
 
 
     private var locations = mutableListOf<LocationData>()
@@ -152,84 +131,101 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
     override fun onMapReady(googleMap: GoogleMap) {
         this.googleMap = googleMap
 
-        googleMap.setOnMarkerClickListener(this)
+    }
 
-        googleMap.setInfoWindowAdapter(object : GoogleMap.InfoWindowAdapter {
-            override fun getInfoWindow(marker: Marker): View? {
-                return null // Use default info window
+    private suspend fun dijkstra(graph: Graph, startVertex: Int): Pair<DoubleArray, IntArray> {
+        val minDistances = DoubleArray(graph.size) { Double.MAX_VALUE }
+        val previous = IntArray(graph.size) { -1 }
+        val visited = BooleanArray(graph.size)
+
+        minDistances[startVertex] = 0.0
+
+        for (i in 0 until graph.size) {
+            val u = getMinDistanceVertex(minDistances, visited)
+            if (u == -1) break
+            visited[u] = true
+
+            for (v in 0 until graph.size) {
+                if (!visited[v] && graph.adjacencyMatrix[u][v] != Double.MAX_VALUE &&
+                    minDistances[u] + graph.adjacencyMatrix[u][v] < minDistances[v]
+                ) {
+                    minDistances[v] = minDistances[u] + graph.adjacencyMatrix[u][v]
+                    previous[v] = u
+                }
             }
+        }
 
-            override fun getInfoContents(marker: Marker): View {
-                // Inflate custom layout for info window
-                val view = layoutInflater.inflate(R.layout.event_info_popup_in_map, null)
-                val titleTextView = view.findViewById<TextView>(R.id.titleTextView)
-                val snippetTextView = view.findViewById<TextView>(R.id.snippetTextView)
-
-                titleTextView.text = marker.title
-                snippetTextView.text = marker.snippet
+        return Pair(minDistances, previous)
+    }
 
 
-                return view
+    private fun getMinDistanceVertex(distances: DoubleArray, visited: BooleanArray): Int {
+        var minDistance = Double.MAX_VALUE
+        var minDistanceVertex = -1
+
+        for (i in distances.indices) {
+            if (!visited[i] && distances[i] < minDistance) {
+                minDistance = distances[i]
+                minDistanceVertex = i
             }
-        })
-
-        googleMap.setOnMapLongClickListener { latLng ->
-            val locationCoordinate = latLng.latitude.toString() + "," + latLng.longitude.toString()
         }
 
-        googleMap.setOnPoiClickListener { poi ->
-            val locationCoordinate =
-                poi.latLng.latitude.toString() + "," + poi.latLng.longitude.toString()
-        }
-
-    }
-
-    override fun onMarkerClick(marker: Marker): Boolean {
-        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
-        val projection = googleMap.projection
-        val markerLatLng = marker.position
-        val markerScreenPosition: Point = projection.toScreenLocation(markerLatLng)
-
-        val popupView = layoutInflater.inflate(R.layout.event_info_popup_in_map, null)
-
-        val titleTextView = popupView.findViewById<TextView>(R.id.titleTextView)
-        val snippetTextView = popupView.findViewById<TextView>(R.id.snippetTextView)
-
-        titleTextView.text = marker.title
-        snippetTextView.text = marker.snippet
-
-
-        val displayMetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displayMetrics)
-        val screenWidth = displayMetrics.widthPixels
-
-        val popupWidth = (screenWidth * 0.75).toInt()
-        val popupHeight = 600
-
-        val popupWindow = PopupWindow(popupView, popupWidth, popupHeight, true)
-
-        val offsetX = markerScreenPosition.x - popupWidth / 2
-        val offsetY = markerScreenPosition.y - popupHeight - 50
-
-        popupWindow.showAtLocation(
-            mapFragment.requireView(),
-            Gravity.TOP or Gravity.START,
-            offsetX,
-            offsetY
-        )
-
-        return true
+        return minDistanceVertex
     }
 
 
-    private fun deleteLocation(marker: Marker) {
-        marker.let {
-            it.remove()
-            markerPropertiesMap.remove(it)
+    suspend fun findShortestRoute(locations: List<LocationData>, apiKey: String) {
+        Log.i("Shortest", locations.size.toString())
+        val graph = Graph(locations.size)
 
-            drawAllRoutes()
+        for (i in locations.indices) {
+            for (j in i + 1 until locations.size) {
+                try {
+                    val distance = getDistance(locations[i].latLng, locations[j].latLng, apiKey)
+                    Log.d("GraphConstruction", "Distance from ${locations[i].name} to ${locations[j].name}: $distance meters")
+                    if (distance < Double.MAX_VALUE) {
+                        graph.addEdge(i, j, distance)
+                    } else {
+                        Log.e("GraphConstruction", "Invalid distance from ${locations[i].name} to ${locations[j].name}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("GraphConstruction", "Failed to get distance: ${e.message}")
+                }
+            }
+        }
+
+        val startVertex = 0 // Change this to the desired starting location index
+        val (distances, previous) = dijkstra(graph, startVertex)
+
+        // Track the shortest path from the start vertex to all other vertices
+        val shortestPath = mutableListOf<Int>()
+        var currentVertex = locations.size - 1
+
+        while (currentVertex != -1) {
+            shortestPath.add(currentVertex)
+            currentVertex = previous[currentVertex]
+        }
+        shortestPath.reverse()
+
+        // Add logging to check the shortestPath content
+        Log.d("ShortestPath", "Shortest path: $shortestPath")
+
+        if (shortestPath.size < 2) {
+            Log.e("ShortestPath", "Error: Shortest path has less than 2 locations")
+            runOnUiThread {
+                Toast.makeText(this, "Error: Shortest path has less than 2 locations", Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+
+        // Mark and draw routes based on the shortest path found
+        for (i in 1 until shortestPath.size) {
+            val from = locations[shortestPath[i - 1]]
+            val to = locations[shortestPath[i]]
+            getAndDrawRoutes(from.latLng, to.latLng, apiKey)
         }
     }
+
 
     private fun drawAllRoutes() {
         runOnUiThread {
@@ -275,11 +271,14 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
                 }
             }
 
-
-
         runOnUiThread {
-            val polyline = this.googleMap.addPolyline(polylineOptions)
-            polylines.add(polyline)
+            if (decodedPolyline.isEmpty()) {
+                Log.e("Polyline", "Decoded polyline is empty")
+            } else {
+                val polyline = this.googleMap.addPolyline(polylineOptions)
+                polylines.add(polyline)
+                Log.i("Polyline", "Polyline added to map with ${decodedPolyline.size} points")
+            }
         }
     }
 
@@ -293,19 +292,19 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
                 val json = Json { ignoreUnknownKeys = true }
                 val directionsResponse =
                     json.decodeFromString<DirectionResponse>(response)
-
+                Log.i("Directions", "$origin, $destination :: ${directionsResponse.routes!!.firstOrNull()?.legs!!.firstOrNull()?.distance.toString()}")
 
                 if (directionsResponse.status == "ZERO_RESULTS") {
-                    val toast =
-                        Toast.makeText(this, "No route found.", Toast.LENGTH_SHORT)
-                    toast.show()
+                    runOnUiThread {
+                        Toast.makeText(this, "The route is not available.", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     val polylinePoints =
                         directionsResponse.routes?.firstOrNull()?.overview_polyline?.points
                     drawRoutes(polylinePoints, "driving")
                 }
             } else {
-                println("Error: Failed to fetch directions")
+                Log.e("Directions", "Failed to fetch directions: Response is null")
             }
         }
     }
@@ -367,82 +366,6 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
         }
     }
 
-    private fun getCoordinateWithLocationName(
-        location: LatLng,
-        placeName: String,
-        apiKey: String,
-        callback: (Double, Double) -> Unit
-    ) {
-        if (isLatLng(placeName)) {
-            val latLngPair = parseLatLng(placeName)
-            val (latitude, longitude) = latLngPair!!
-            callback(latitude, longitude)
-            return
-        }
-
-
-        val client = OkHttpClient()
-
-        val url = HttpUrl.Builder()
-            .scheme("https")
-            .host("maps.googleapis.com")
-            .addPathSegments("maps/api/place/textsearch/json")
-            .addQueryParameter("query", placeName)
-            .addQueryParameter("location", "${location.latitude},${location.longitude}")
-            .addQueryParameter("radius", "2000") // You can adjust the radius as needed
-            .addQueryParameter("rankby", "prominence")
-            .addQueryParameter("key", apiKey)
-            .build()
-
-        val request = Request.Builder()
-            .url(url)
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onResponse(call: Call, response: Response) {
-                val json = response.body?.string()
-                val jsonObject = json?.let { JSONObject(it) }
-                val results = jsonObject?.getJSONArray("results")
-                if (results != null && results.length() > 0) {
-                    // Calculate the distance to each place and find the closest one
-                    var closestPlace: JSONObject? = null
-                    var minDistance = Double.MAX_VALUE
-                    for (i in 0 until results.length()) {
-                        val place = results.getJSONObject(i)
-                        val locationObj = place.getJSONObject("geometry").getJSONObject("location")
-                        val placeLocation =
-                            LatLng(locationObj.getDouble("lat"), locationObj.getDouble("lng"))
-                        val distance = getDistanceBetweenPoints(
-                            location.latitude,
-                            location.longitude,
-                            placeLocation.latitude,
-                            placeLocation.longitude
-                        )
-                        if (distance < minDistance) {
-                            minDistance = distance
-                            closestPlace = place
-                        }
-                    }
-                    if (closestPlace != null) {
-                        val location =
-                            closestPlace.getJSONObject("geometry").getJSONObject("location")
-                        val latitude = location.getDouble("lat")
-                        val longitude = location.getDouble("lng")
-                        callback(latitude, longitude)
-                    } else {
-                        // Handle no results
-                    }
-                } else {
-                    // Handle no results
-                }
-            }
-
-            override fun onFailure(call: Call, e: IOException) {
-                // Handle failure
-            }
-        })
-    }
-
     private fun getCurrentLocation(callback: (Double, Double) -> Unit) {
         if (ActivityCompat.checkSelfPermission(
                 this,
@@ -479,45 +402,49 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
         val client = OkHttpClient()
 
         val request = Request.Builder()
-            .url("$url?&destination=${destination.latitude},${destination.longitude}&origin=${origin.latitude},${origin.longitude}&key=$apiKey")
-            .post("".toRequestBody("application/json".toMediaTypeOrNull()))
+            .url("$url?origin=${origin.latitude},${origin.longitude}&destination=${destination.latitude},${destination.longitude}&key=$apiKey")
             .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
+                Log.e("Directions", "Failed to fetch directions: ${e.message}")
                 callback(null)
             }
 
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
                     val responseBody = response.body?.string()
+                    Log.i("Directions", "Directions API response received")
                     callback(responseBody)
                 } else {
+                    Log.e("Directions", "Directions API request failed with response code: ${response.code}")
                     callback(null)
                 }
             }
         })
     }
 
-    private fun getDistanceBetweenPoints(
-        startLat: Double,
-        startLng: Double,
-        endLat: Double,
-        endLng: Double
-    ): Double {
-        val earthRadius = 6371 // Radius of the Earth in kilometers
+    private suspend fun getDistance(from: LatLng, to: LatLng, apiKey: String): Double {
+        val url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=${from.latitude},${from.longitude}&destinations=${to.latitude},${to.longitude}&key=$apiKey"
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).build()
 
-        val dLat = Math.toRadians(endLat - startLat)
-        val dLng = Math.toRadians(endLng - startLng)
-
-        val a = sin(dLat / 2) * sin(dLat / 2) +
-                cos(Math.toRadians(startLat)) * cos(Math.toRadians(endLat)) *
-                sin(dLng / 2) * sin(dLng / 2)
-
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-        return earthRadius * c // Distance in kilometers
+        return withContext(Dispatchers.IO) {
+            val response = client.newCall(request).execute()
+            val jsonResponse = JSONObject(response.body?.string() ?: "")
+            val rows = jsonResponse.getJSONArray("rows")
+            if (rows.length() > 0) {
+                val elements = rows.getJSONObject(0).getJSONArray("elements")
+                if (elements.length() > 0) {
+                    val distance = elements.getJSONObject(0).getJSONObject("distance").getDouble("value")
+                    return@withContext distance / 1000 // Return distance in kilometers
+                }
+            }
+            Double.MAX_VALUE
+        }
     }
+
+
 
     private fun init() {
         getViews()
@@ -526,8 +453,6 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
 
 
         GlobalScope.launch {
-
-
             drawAllRoutes()
         }
 
@@ -540,6 +465,25 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
             drawAllRoutes()
         }
 
+
+
+
+
+        CoroutineScope(Dispatchers.Main).launch {
+            locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(5.461359499999999,100.2174133)))
+            locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(4.6258304,101.0889885)))
+            locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(5.2783403,100.2419407)))
+            locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(5.358289,100.316313)))
+            locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(5.4734004,100.2460575)))
+
+            for (location in locations) {
+                markLocationOnMap(location.latLng.latitude, location.latLng.longitude)
+            }
+
+            findShortestRoute(locations, apiKey2)
+        }
+
+
     }
 
 
@@ -550,6 +494,7 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
     private fun getViews(){
         searchTextField = findViewById(R.id.search_textfield)
         searchRecyclerView = findViewById(R.id.search_recyclerview)
+        map = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
     }
 
     private fun initListeners(){
@@ -637,20 +582,15 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
         }
     }
 
-    private fun markLocationOnMap(
-        latitude: Double,
-        longitude: Double
-    ) {
-        runOnUiThread {
-            if (this::googleMap.isInitialized) {
-
+    private fun markLocationOnMap(latitude: Double, longitude: Double) {
+        if (this::googleMap.isInitialized) {
+            runOnUiThread {
                 val newMarker = MarkerOptions()
                     .position(LatLng(latitude, longitude))
                     .title("Test")
 
                 val marker = googleMap.addMarker(newMarker)
                 marker?.let {
-                    // Associate the marker with its calendar event in the markerPropertiesMap
                     markerPropertiesMap[it] = ""
                 }
 
@@ -666,8 +606,16 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
                 val cameraUpdate = CameraUpdateFactory.newLatLngBounds(bounds, padding)
                 googleMap.moveCamera(cameraUpdate)
             }
+        } else {
+            // If googleMap is not initialized yet, wait for the map to be ready
+            map.getMapAsync { map ->
+                googleMap = map
+                markLocationOnMap(latitude, longitude)
+            }
         }
     }
+
+
 
     private fun parseLatLng(latLngString: String): Pair<Double, Double>? {
         val regex = """^([-+]?\d{1,3}(?:\.\d+)?),([-+]?\d{1,3}(?:\.\d+)?)$""".toRegex()

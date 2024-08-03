@@ -106,10 +106,7 @@ class TravelPlanFormActivity : AppCompatActivity() {
         }
 
         nextButton.setOnClickListener {
-            if(submitForm()) {
-                startActivity(Intent(this, MushTryActivity::class.java))
-                finish()
-            }
+            submitForm()
         }
 
     }
@@ -225,9 +222,26 @@ class TravelPlanFormActivity : AppCompatActivity() {
     }
 
 
-    private fun submitForm(): Boolean{
+    private fun submitForm(): Boolean {
         if (!inputValidation()) return false
 
+        val location = locationValue
+        val startDateValue = startDatePicker.text.toString()
+        val endDateValue = endDatePicker.text.toString()
+        val startTimeValue = startTimePicker.text.toString()
+        val endTimeValue = endTimePicker.text.toString()
+
+        val intent = Intent(this, MushTryActivity::class.java).apply {
+            putExtra("location", location)
+            putExtra("startDate", startDateValue)
+            putExtra("endDate", endDateValue)
+            putExtra("startTime", startTimeValue)
+            putExtra("endTime", endTimeValue)
+        }
+
+        startActivity(intent)
+        finish()
         return true
     }
+
 }

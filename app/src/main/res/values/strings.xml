@@ -20,7 +20,6 @@
     </string-array>
 
 
-
     <string name="app_name">Travella</string>
     <string name="title_activity_login">LoginActivity</string>
     <string name="prompt_email">Email</string>

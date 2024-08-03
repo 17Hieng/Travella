@@ -5,21 +5,6 @@ plugins {
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
-secrets {
-    // Optionally specify a different file name containing your secrets.
-    // The plugin defaults to "local.properties"
-    propertiesFileName = "secrets.properties"
-
-    // A properties file containing default secret values. This file can be
-    // checked in version control.
-    defaultPropertiesFileName = "local.defaults.properties"
-
-    // Configure which keys should be ignored by the plugin by providing regular expressions.
-    // "sdk.dir" is ignored by default.
-    ignoreList.add("keyToIgnore") // Ignore the key "keyToIgnore"
-    ignoreList.add("sdk.*")       // Ignore all keys matching the regexp "sdk.*"
-}
-
 android {
     namespace = "com.csian.travella"
     compileSdk = 34
@@ -32,7 +17,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
     }
 
     buildTypes {
@@ -56,6 +40,23 @@ android {
     }
 }
 
+
+
+secrets {
+    // Optionally specify a different file name containing your secrets.
+    // The plugin defaults to "local.properties"
+    propertiesFileName = "secrets.properties"
+
+    // A properties file containing default secret values. This file can be
+    // checked in version control.
+    defaultPropertiesFileName = "local.defaults.properties"
+
+    // Configure which keys should be ignored by the plugin by providing regular expressions.
+    // "sdk.dir" is ignored by default.
+    ignoreList.add("keyToIgnore") // Ignore the key "keyToIgnore"
+    ignoreList.add("sdk.")       // Ignore all keys matching the regexp "sdk."
+}
+
 dependencies {
 
     implementation(libs.androidx.core.ktx)
@@ -68,16 +69,25 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation("com.google.android.gms:play-services-auth:21.2.0")  // Check for the latest version
     implementation("com.google.firebase:firebase-auth:23.0.0")
+    implementation ("com.github.AnyChart:AnyChart-Android:1.1.2") // this line is for pie chart
+    implementation ("androidx.appcompat:appcompat:1.3.1")
+    implementation ("androidx.constraintlayout:constraintlayout:2.0.4")
+    implementation ("androidx.core:core:1.6.0")
+    implementation ("androidx.recyclerview:recyclerview:1.2.0")
+    implementation ("com.google.android.material:material:1.4.0")
+    implementation ("androidx.webkit:webkit:1.5.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     implementation("com.google.maps.android:android-maps-utils:2.2.5")
     implementation(libs.play.services.maps)
-    implementation(libs.androidx.room.ktx)
-    implementation(libs.play.services.location)
-    implementation(libs.protolite.well.known.types)
     implementation(libs.places)
+    implementation(libs.androidx.room.ktx)
+    implementation(libs.protolite.well.known.types)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
+    implementation ("com.github.bumptech.glide:glide:4.12.0")
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation ("com.squareup.retrofit2:converter-gson:2.9.0")
     androidTestImplementation(libs.androidx.espresso.core)
 }
 

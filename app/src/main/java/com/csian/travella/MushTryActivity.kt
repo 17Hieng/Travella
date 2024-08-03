@@ -25,6 +25,14 @@ class MushTryActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mush_try)
 
+        // Get Data
+        val location = intent.getStringExtra("location")
+        val startDate = intent.getStringExtra("startDate")
+        val endDate = intent.getStringExtra("endDate")
+        val startTime = intent.getStringExtra("startTime")
+        val endTime = intent.getStringExtra("endTime")
+
+
         val itemView = findViewById<RecyclerView>(R.id.id_musttry_items)
         itemView.layoutManager = LinearLayoutManager(this)
         adapter = MushTryItemsAdapter(mutableListOf())
