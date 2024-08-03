@@ -16,6 +16,9 @@
         android:theme="@style/Theme.Travella"
         tools:targetApi="31">
         <activity
+            android:name=".MushTryActivity"
+            android:exported="false" />
+        <activity
             android:name=".AddTripActivity"
             android:exported="false" />
         <activity
