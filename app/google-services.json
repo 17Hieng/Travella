@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "353396665152",
+    "project_id": "travella-85801",
+    "storage_bucket": "travella-85801.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:353396665152:android:71e771cf27db0bad15a8a5",
+        "android_client_info": {
+          "package_name": "com.csian.travella"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "353396665152-0r0fjsa0fe41q7n7lhn0ok0davna1idl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCowst9LoYXDn0sgfRa9l2Am021CpmDQWQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "353396665152-0r0fjsa0fe41q7n7lhn0ok0davna1idl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
