@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/item"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="5dp"
+    android:background="@drawable/round_corner_card_12"
+    android:backgroundTint="@color/light_grey_20"
+    android:elevation="2dp"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:padding="12dp">
+
+
+    <TextView
+        android:id="@+id/eventTitleTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:text="UCCD 3223 Android UCCD 3223 Android UCCD 3223 Android"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@+id/locationTextView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/startTimeTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="07:40 午后"
+        android:textAlignment="viewEnd"
+        app:layout_constraintBottom_toTopOf="@+id/endTimeTextView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/locationTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:lines="1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/eventTitleTextView"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="@+id/eventTitleTextView"
+        app:layout_constraintTop_toBottomOf="@+id/eventTitleTextView" />
+
+
+    <TextView
+        android:id="@+id/endTimeTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="07:40 午后"
+        android:textAlignment="viewEnd"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/startTimeTextView"
+        app:layout_constraintTop_toBottomOf="@+id/startTimeTextView" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
