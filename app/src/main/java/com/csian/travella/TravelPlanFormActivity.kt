@@ -1,6 +1,7 @@
 package com.csian.travella
 
 import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -118,5 +119,26 @@ class TravelPlanFormActivity : AppCompatActivity() {
 
         // Show the DatePickerDialog
         datePickerDialog.show()
+    }
+
+    private fun showTimePickerDialog(picker: Button) {
+        // Get the current time
+        val calendar = Calendar.getInstance()
+        val hour = calendar.get(Calendar.HOUR_OF_DAY)
+        val minute = calendar.get(Calendar.MINUTE)
+
+        // Create a TimePickerDialog
+        val timePickerDialog = TimePickerDialog(this,
+            { view, hourOfDay, minute ->
+                // Handle the time selection
+                val selectedTime = String.format("%02d:%02d", hourOfDay, minute)
+                // Display the selected time on the button
+                picker.text = selectedTime
+                // Optionally show a toast with the selected time
+                Toast.makeText(this, "Selected Time: $selectedTime", Toast.LENGTH_SHORT).show()
+            }, hour, minute, true)
+
+        // Show the TimePickerDialog
+        timePickerDialog.show()
     }
 }
