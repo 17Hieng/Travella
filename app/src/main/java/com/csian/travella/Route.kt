@@ -5,12 +5,18 @@ import android.Manifest
 import android.app.Activity
 import android.app.TimePickerDialog
 import android.content.Context
+import com.google.maps.android.SphericalUtil
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Point
+import android.location.Location
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Gravity
@@ -55,6 +61,12 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.AutocompleteSessionToken
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.api.model.RectangularBounds
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
+import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.type.DateTime
@@ -77,6 +89,7 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.UUID
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -100,6 +113,8 @@ class Permission {
     }
 }
 
+data class LocationData(val id: String, val name: String, val latLng: LatLng)
+
 class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarkerClickListener {
 
     // COLLECTIONS
@@ -110,17 +125,23 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
     // OBJECT
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var googleMap: GoogleMap
+    private lateinit var placesClient: PlacesClient
+    private lateinit var predictionsAdapter: PredictionsAdapter
 
     // PRIMITIVE TYPE
     private var apiKey2: String = "AIzaSyAze5W3PTx9epav2EtmInOp7eh4p9UGvbQ"
 
 
     // VIEWS
-    private lateinit var locationTextField: EditText
+    private lateinit var searchTextField: EditText
+    private lateinit var searchRecyclerView: RecyclerView
+
+
+    private var locations = mutableListOf<LocationData>()
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_route)
@@ -290,6 +311,63 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
         }
     }
 
+    private fun getCoordinateWithAddress(address: String, apiKey: String, callback: (LatLng?) -> Unit) {
+        val client = OkHttpClient()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val urlString = "https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${apiKey}"
+                val request = Request.Builder().url(urlString).build()
+                val response = client.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    val responseBody = response.body?.string()
+                    responseBody?.let {
+                        val jsonResponse = JSONObject(it)
+
+                        val status = jsonResponse.getString("status")
+                        if (status == "OK") {
+                            val results = jsonResponse.getJSONArray("results")
+                            if (results.length() > 0) {
+                                val location = results.getJSONObject(0)
+                                    .getJSONObject("geometry")
+                                    .getJSONObject("location")
+                                val lat = location.getDouble("lat")
+                                val lng = location.getDouble("lng")
+                                val latLng = LatLng(lat, lng)
+
+                                // Run callback on main thread
+                                Handler(Looper.getMainLooper()).post {
+                                    callback(latLng)
+                                }
+                            } else {
+                                Log.e("Geocoding", "No results found for the given address.")
+                                Handler(Looper.getMainLooper()).post {
+                                    callback(null)
+                                }
+                            }
+                        } else {
+                            Log.e("Geocoding", "Geocoding request failed with status: $status")
+                            Handler(Looper.getMainLooper()).post {
+                                callback(null)
+                            }
+                        }
+                    }
+                } else {
+                    Log.e("Geocoding", "HTTP request failed with response code: ${response.code}")
+                    Handler(Looper.getMainLooper()).post {
+                        callback(null)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("Geocoding", "Geocoding request failed: ${e.message}")
+                Handler(Looper.getMainLooper()).post {
+                    callback(null)
+                }
+            }
+        }
+    }
+
     private fun getCoordinateWithLocationName(
         location: LatLng,
         placeName: String,
@@ -443,6 +521,8 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
     }
 
     private fun init() {
+        getViews()
+        initListeners()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
 
@@ -460,11 +540,99 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnMarke
         getCurrentLocation { latitude, longitude ->
             drawAllRoutes()
         }
+
     }
 
 
     private fun isLatLng(value: String): Boolean {
         return parseLatLng(value) != null
+    }
+
+    private fun getViews(){
+        searchTextField = findViewById(R.id.search_textfield)
+        searchRecyclerView = findViewById(R.id.search_recyclerview)
+    }
+
+    private fun initListeners(){
+
+        searchRecyclerView.layoutManager = LinearLayoutManager(this)
+
+        if (!Places.isInitialized()) {
+            Places.initialize(applicationContext, apiKey2)
+        }
+        placesClient = Places.createClient(this)
+        predictionsAdapter = PredictionsAdapter { prediction ->
+            // Handle place selection
+            val placeId = prediction.placeId
+            val placeFields = listOf(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS)
+            val request = com.google.android.libraries.places.api.net.FetchPlaceRequest.newInstance(placeId, placeFields)
+
+            placesClient.fetchPlace(request).addOnSuccessListener { response ->
+                val place = response.place
+                place.latLng?.let {
+                    Log.i("Places", "Place selected: ${place.name}, ${place.address}, ${place.latLng}")
+                    val location = "${place.name}, ${place.address}"
+                    searchTextField.setText("")
+                    searchRecyclerView.adapter = null
+                    markLocationOnMap(place.latLng.latitude, place.latLng.longitude)
+                }
+            }.addOnFailureListener { exception ->
+                Log.e("Places", "Place not found: ${exception.message}")
+            }
+        }
+        searchTextField.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                searchRecyclerView.adapter = predictionsAdapter
+                if (s.isNullOrEmpty()) {
+                    searchRecyclerView.adapter = null
+                    return
+                }
+                fetchNearbyPlaces(s.toString())
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+    }
+
+    private fun fetchNearbyPlaces(query: String) {
+        val token = AutocompleteSessionToken.newInstance()
+        val requestBuilder = FindAutocompletePredictionsRequest.builder()
+            .setSessionToken(token)
+            .setQuery(query)
+            .setTypesFilter(listOf("tourist_attraction"))
+
+        fetchCurrentLocation {
+            val latLng = it?.let { it1 -> LatLng(it1.latitude, it.longitude) }
+            requestBuilder.setOrigin(latLng)
+
+            val radiusInMeters = 5_000.0
+            requestBuilder.setLocationBias(
+                RectangularBounds.newInstance(
+                    SphericalUtil.computeOffset(latLng, radiusInMeters, 225.0), // Southwest point
+                    SphericalUtil.computeOffset(latLng, radiusInMeters, 45.0)   // Northeast point
+                ))
+
+            val request = requestBuilder.build()
+
+            placesClient.findAutocompletePredictions(request).addOnSuccessListener { response ->
+                predictionsAdapter.submitList(response.autocompletePredictions)
+            }.addOnFailureListener { exception ->
+                Log.e("Places", "Autocomplete prediction fetch failed: ${exception.message}")
+            }
+        }
+    }
+
+
+
+    private fun fetchCurrentLocation(callback: (Location?) -> Unit) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            location?.let {
+                callback(it)
+            }
+        }
     }
 
     private fun markLocationOnMap(
