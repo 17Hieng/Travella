@@ -1,4 +1,25 @@
 <resources>
+    <string-array name="malaysia_states_and_territories">
+        <item>Johor</item>
+        <item>Kedah</item>
+        <item>Kelantan</item>
+        <item>Melaka</item>
+        <item>Negeri Sembilan</item>
+        <item>Pahang</item>
+        <item>Penang</item>
+        <item>Perak</item>
+        <item>Perlis</item>
+        <item>Sabah</item>
+        <item>Sarawak</item>
+        <item>Selangor</item>
+        <item>Terengganu</item>
+        <item>Kuala Lumpur</item>
+        <item>Labuan</item>
+        <item>Putrajaya</item>
+    </string-array>
+
+
+
     <string name="app_name">Travella</string>
     <string name="title_activity_login">LoginActivity</string>
     <string name="prompt_email">Email</string>
