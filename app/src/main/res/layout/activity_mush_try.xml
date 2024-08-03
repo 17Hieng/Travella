@@ -52,7 +52,7 @@
         tools:layout_editor_absoluteY="58dp" />
 
     <Button
-        android:id="@+id/button7"
+        android:id="@+id/next_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="30dp"

@@ -33,4 +33,6 @@ class StartTravelPlanActivity : AppCompatActivity() {
             finish()
         }
     }
+
+
 }

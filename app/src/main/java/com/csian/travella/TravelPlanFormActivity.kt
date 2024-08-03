@@ -1,5 +1,7 @@
 package com.csian.travella
 
+import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
@@ -11,6 +13,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import java.util.Calendar
 
 class TravelPlanFormActivity : AppCompatActivity() {
 
@@ -21,6 +24,7 @@ class TravelPlanFormActivity : AppCompatActivity() {
     private lateinit var endDatePicker: Button
     private lateinit var startTimePicker: Button
     private lateinit var endTimePicker: Button
+    private lateinit var nextButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -48,6 +52,7 @@ class TravelPlanFormActivity : AppCompatActivity() {
         endDatePicker = findViewById(R.id.end_date_picker)
         startTimePicker = findViewById(R.id.start_time_picker)
         endTimePicker = findViewById(R.id.end_time_picker)
+        nextButton = findViewById(R.id.next_button)
     }
 
     private fun initViews(){
@@ -75,9 +80,43 @@ class TravelPlanFormActivity : AppCompatActivity() {
 
 
         startDatePicker.setOnClickListener {
+            showDatePickerDialog(startDatePicker)
+        }
+
+        endDatePicker.setOnClickListener {
+            showDatePickerDialog(endDatePicker)
+        }
+
+        startTimePicker.setOnClickListener {
 
         }
 
+        nextButton.setOnClickListener {
+            startActivity(Intent(this, MushTryActivity::class.java))
+            finish()
+        }
 
+    }
+
+    private fun showDatePickerDialog(picker: Button) {
+        // Get the current date
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        // Create a DatePickerDialog
+        val datePickerDialog = DatePickerDialog(this,
+            { view, year, monthOfYear, dayOfMonth ->
+                // Handle the date selection
+                val selectedDate = "${dayOfMonth}/${monthOfYear + 1}/${year}"
+                // Display the selected date on the button
+                picker.text = selectedDate
+                // Optionally show a toast with the selected date
+                Toast.makeText(this, "Selected Date: $selectedDate", Toast.LENGTH_SHORT).show()
+            }, year, month, day)
+
+        // Show the DatePickerDialog
+        datePickerDialog.show()
     }
 }
