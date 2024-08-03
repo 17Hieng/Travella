@@ -6,7 +6,9 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
-class MushTryItemsAdapter(private val dataSet: Array<String>) :
+
+
+class MushTryItemsAdapter(private val dataSet: MutableList<String>) :
     RecyclerView.Adapter<MushTryItemsAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view){
@@ -22,11 +24,14 @@ class MushTryItemsAdapter(private val dataSet: Array<String>) :
     }
 
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
-
-        // Get element from your dataset at this position and replace the
-        // contents of the view with that element
         viewHolder.textView.text = dataSet[position]
     }
 
     override fun getItemCount() = dataSet.size
+
+    fun updateEvents(newItemList: MutableList<String>) {
+        newItemList.clear()
+        newItemList.addAll(newItemList)
+        notifyDataSetChanged()
+    }
 }
