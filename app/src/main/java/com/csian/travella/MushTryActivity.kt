@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.Button
 import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -34,6 +35,12 @@ class MushTryActivity : AppCompatActivity() {
         val endDate = intent.getStringExtra("endDate")
         val startTime = intent.getStringExtra("startTime")
         val endTime = intent.getStringExtra("endTime")
+
+        findViewById<Button>(R.id.back_button).setOnClickListener {
+            // Go to travel plan page Intent
+            finish()
+
+        }
 
 
         val itemView = findViewById<RecyclerView>(R.id.id_musttry_items)
