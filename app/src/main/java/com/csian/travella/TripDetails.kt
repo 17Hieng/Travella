@@ -27,6 +27,11 @@ class TripDetailsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_trip_details)
 
+        //get Intent data
+        val intent = intent
+        val placeId = intent.getStringExtra("place_id")
+
+
         setupActionBar()
         setupRetrofit()
         populateDetails()

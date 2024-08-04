@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -21,6 +22,8 @@ class MushTryActivity : AppCompatActivity() {
     private lateinit var adapter: MushTryItemsAdapter
     private var apiKey2: String = "AIzaSyAze5W3PTx9epav2EtmInOp7eh4p9UGvbQ"
 
+    private var selectedPlace: MutableList<Place> = mutableListOf()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_mush_try)
@@ -35,12 +38,14 @@ class MushTryActivity : AppCompatActivity() {
 
         val itemView = findViewById<RecyclerView>(R.id.id_musttry_items)
         itemView.layoutManager = LinearLayoutManager(this)
-        adapter = MushTryItemsAdapter(mutableListOf())
+        adapter = MushTryItemsAdapter(this, mutableListOf<Place>()){
+            addItems(it)
+        }
         itemView.adapter = adapter
 
         (itemView.adapter as MushTryItemsAdapter).updateEvents(mutableListOf())
 
-        fetchTouristAttractions("Kuala Lumpur", locations["Kuala Lumpur"]!!.first, locations["Kuala Lumpur"]!!.second, apiKey2, 20000)
+        fetchTouristAttractions(location!!, locations[location]!!.first, locations[location]!!.second, apiKey2, 30000)
     }
 
     @Serializable
@@ -48,8 +53,27 @@ class MushTryActivity : AppCompatActivity() {
         val place_id: String,
         val name: String,
         val rating: Float? = null,
-        val vicinity: String
+        val vicinity: String,
+        val geometry: Geometry,
+        val photo: Photo? = null
     )
+
+    @Serializable
+    data class Photo(
+        val photo_reference: String
+    )
+
+    @Serializable
+    data class Geometry(
+        val location: Location
+    )
+
+    @Serializable
+    data class Location(
+        val lat: Double,
+        val lng: Double
+    )
+
 
     @Serializable
     data class PlacesResponse(
@@ -92,14 +116,18 @@ class MushTryActivity : AppCompatActivity() {
                 val placesResponse = Json { ignoreUnknownKeys = true }.decodeFromString<PlacesResponse>(jsonResponse!!)
                 val sortedPlaces = placesResponse.results.sortedByDescending { it.rating ?: 0.0f }
 
-                println("Tourist Attractions in $locationName:")
-                sortedPlaces.forEach { place ->
-                    Log.i("Try", "Name: ${place.name}, Rating: ${place.rating}, Vicinity: ${place.vicinity}")
+                runOnUiThread {
+                    adapter.updateEvents(placesResponse.results.toMutableList())
                 }
+
             }
         })
     }
 
+
+    private fun addItems(place: Place) {
+        selectedPlace.add(place)
+    }
 
 
 
