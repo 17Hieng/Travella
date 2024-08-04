@@ -30,8 +30,6 @@ class TripDetailsActivity : AppCompatActivity() {
         setContentView(R.layout.activity_trip_details)
 
         //get Intent data
-        val intent = intent
-        val placeId = intent.getStringExtra("place_id")
 
 
         setupActionBar()
@@ -57,7 +55,7 @@ class TripDetailsActivity : AppCompatActivity() {
 
                 val hl = highlights!!.message
 
-                val h2 = hl!!.split("\n")
+                val h2 = hl!!.split("\n\n")
 
                 tvHighlights.text = h2[1] ?: "No highlights found"
                 tvNotes.text = h2[2] ?: "No notes to take of"
@@ -70,8 +68,11 @@ class TripDetailsActivity : AppCompatActivity() {
     }
 
     private fun fetchHighlightsFromApi(): HighlightsResponse? {
+        val intent = intent
+        val placeId = intent.getStringExtra("place_id")
+
         val request = Request.Builder()
-            .url("http://10.0.2.2:8000/api/reviewAnalysis/ChIJfbX2aiOuEmsRS3rtwHGqAaI") // Replace with your actual URL
+            .url("http://10.0.2.2:8000/api/reviewAnalysis/${placeId}") // Replace with your actual URL
             .build()
 
         client.newCall(request).execute().use { response ->

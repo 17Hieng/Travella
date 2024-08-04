@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.androidx.annotation)
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation("com.google.code.gson:gson:2.8.9")
     implementation("com.google.android.gms:play-services-auth:21.2.0")  // Check for the latest version
     implementation("com.google.firebase:firebase-auth:23.0.0")
     implementation ("com.github.AnyChart:AnyChart-Android:1.1.2") // this line is for pie chart
