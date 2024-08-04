@@ -77,10 +77,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Highlights"
+            android:text="What people talks about it on Google"
             android:textStyle="bold"
-            app:layout_constraintTop_toBottomOf="@id/tvPrice"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvPrice" />
 
         <TextView
             android:id="@+id/tvHighlights"
