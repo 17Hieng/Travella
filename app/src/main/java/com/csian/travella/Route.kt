@@ -471,7 +471,6 @@ class RouteActivity : AppCompatActivity(), OnMapReadyCallback{
 
         CoroutineScope(Dispatchers.Main).launch {
             locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(5.461359499999999,100.2174133)))
-            locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(4.6258304,101.0889885)))
             locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(5.2783403,100.2419407)))
             locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(5.358289,100.316313)))
             locations.add(LocationData(UUID.randomUUID().toString(), "Test", LatLng(5.4734004,100.2460575)))
