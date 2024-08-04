@@ -14,14 +14,16 @@ import com.bumptech.glide.Glide
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.GET
-
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 
 class TripDetailsActivity : AppCompatActivity() {
 
-    private lateinit var apiService: ApiService
+    private val client = OkHttpClient()
+    private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,7 +35,6 @@ class TripDetailsActivity : AppCompatActivity() {
 
 
         setupActionBar()
-        setupRetrofit()
         populateDetails()
         fetchHighlights()
     }
@@ -45,30 +46,49 @@ class TripDetailsActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRetrofit() {
-        val retrofit = Retrofit.Builder()
-            .baseUrl("http://127.0.0.1:8000") // Replace with your API base URL
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-        apiService = retrofit.create(ApiService::class.java)
-    }
-
     private fun fetchHighlights() {
         val tvHighlights = findViewById<TextView>(R.id.tvHighlights)
+        val tvNotes = findViewById<TextView>(R.id.tvNotes)
         lifecycleScope.launch {
             try {
                 val highlights = withContext(Dispatchers.IO) {
-                    apiService.getHighlights()
+                    fetchHighlightsFromApi()
                 }
-                tvHighlights.text = highlights.joinToString("\n") { "• $it" }
+
+                val hl = highlights!!.message
+
+                val h2 = hl!!.split("\n")
+
+                tvHighlights.text = h2[1] ?: "No highlights found"
+                tvNotes.text = h2[2] ?: "No notes to take of"
+
             } catch (e: Exception) {
                 tvHighlights.text = "Failed to load highlights: ${e.message}"
+                tvNotes.text = "Failed to load notes"
             }
         }
     }
 
+    private fun fetchHighlightsFromApi(): HighlightsResponse? {
+        val request = Request.Builder()
+            .url("http://10.0.2.2:8000/api/reviewAnalysis/ChIJfbX2aiOuEmsRS3rtwHGqAaI") // Replace with your actual URL
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            if (response.isSuccessful) {
+                response.body?.string()?.let {
+                    return try {
+                        gson.fromJson(it, HighlightsResponse::class.java)
+                    } catch (e: JsonSyntaxException) {
+                        null
+                    }
+                }
+            }
+            return null
+        }
+    }
+
     private fun populateDetails() {
-        // In a real app, you'd get this data from an intent or a view model
         val imageUrl = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTefcSW2FQQUgvkCcp2gz3mhQ6rBCkQDYEiUw&s"
         val name = "Penang Hill"
         val rating = 4.0f
@@ -81,7 +101,6 @@ class TripDetailsActivity : AppCompatActivity() {
         """.trimIndent()
         val notes = "Sunny day. Suggested to wear sunscreen and long sleeve."
 
-        // Load image
         val ivDestination = findViewById<ImageView>(R.id.ivDestination)
         val tvDestinationName = findViewById<TextView>(R.id.tvDestinationName)
         val rbRating = findViewById<RatingBar>(R.id.rbRating)
@@ -92,7 +111,6 @@ class TripDetailsActivity : AppCompatActivity() {
 
         Glide.with(this).load(imageUrl).into(ivDestination)
 
-        // Set texts
         tvDestinationName.text = name
         rbRating.rating = rating
         tvDescription.text = description
@@ -110,7 +128,6 @@ class TripDetailsActivity : AppCompatActivity() {
     }
 }
 
-interface ApiService {
-    @GET("highlights") // Replace with your actual endpoint
-    suspend fun getHighlights(): List<String>
-}
+data class HighlightsResponse(
+    val message: String
+)
